@@ -54,11 +54,19 @@ def vivaRealWebScraping(htmlContent):
     # vivaRealWebScrapingElement(link1)
 
     # São exibidos 36 anuncios por página
+    anuncioLista = []
+
     for item in lista:
         indexElement += 1
         link = url+item.get('href')
-        print(vivaRealWebScrapingElement(link))
-    print(indexElement)
+        anuncio = vivaRealWebScrapingElement(link)
+        # dataTable = pd.DataFrame.from_dict(anuncio, orient='index')
+        anuncioLista.append(anuncio)
+    df = pd.DataFrame(anuncioLista)
+    # df.to_csv('vivareal.csv',encoding='utf-8', index=False)
+    # precisa instalar o módulo openpyxl
+    df.to_excel('vivareal.xlsx',encoding='utf-8', index=False)
+
 
 def getTextFromElement(Element):
     if Element is None:
