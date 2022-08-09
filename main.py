@@ -2,7 +2,6 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-# OLX bloqueia requisição do python
 url_olx = {
     'venda' : 'https://rn.olx.com.br/rio-grande-do-norte/natal/imoveis/venda',
     'aluguel' : 'https://rn.olx.com.br/rio-grande-do-norte/natal/imoveis/aluguel'
@@ -10,7 +9,11 @@ url_olx = {
 
 url_vivareal = {
     'venda':'https://www.vivareal.com.br/venda/rio-grande-do-norte/natal/',
-    'aluguel':'https://www.vivareal.com.br/aluguel/rio-grande-do-norte/natal/'
+    'aluguel':'https://www.vivareal.com.br/aluguel/rio-grande-do-norte/natal/',
+    'casa': 'https://www.vivareal.com.br/venda/rio-grande-do-norte/natal/casa_residencial/',
+    'apartamento':'https://www.vivareal.com.br/venda/rio-grande-do-norte/natal/apartamento_residencial/',
+    'cobertura': 'https://www.vivareal.com.br/venda/rio-grande-do-norte/natal/cobertura_residencial/',
+    'flat':'https://www.vivareal.com.br/venda/rio-grande-do-norte/natal/flat_residencial/'
 }
 
 url_trovit = {
@@ -19,10 +22,13 @@ url_trovit = {
 }
 
 
-url = url_trovit['venda']
+url = url_vivareal['venda']
+
+header = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36'}
 
 def getWebScrapingResponse(url):
-    req = requests.get(url)
+    req = requests.get(url, headers=header)
     if req.status_code == 200:
         print('HTTP 200 OK')
         req_soup = BeautifulSoup(req.content, 'html.parser')
@@ -32,56 +38,52 @@ def getWebScrapingResponse(url):
         return
 
 def executarWebScraping(url):
-    req = requests.get(url)
-    if (req.status_code == 200):
-        print('HTTP 200 OK')
-        req_soup = BeautifulSoup(req.content, 'lxml')
-        trovitWebScraping(req_soup)
-    else:
-        print(req)
-        return
+    # Capturar anuncios no Viva Real
+    # Paginação: ?pagina=X
+    vivaRealWebScraping(getWebScrapingResponse(url))
 
-def trovitWebScraping(htmlContent):
+
+def vivaRealWebScraping(htmlContent):
     indexElement = 0
-    trovitElements = htmlContent.findAll("div", {"class": "js-item"})
-    # for trovitElement in trovitElements:
-    #     urlElement = trovitElement.find('a').get('href')
-    #     trovitWebScrapingElement(urlElement)
+    url = 'https://www.vivareal.com.br'
+    # Capturar link no título do anuncio
+    lista = htmlContent.findAll('a', {"class":"js-card-title"})
 
-    elementTest = trovitElements[0].find('a').get('href')
-    print(indexElement + 1)
-    print(elementTest)
-    trovitWebScrapingElement(elementTest)
+    # link1 = url+lista[0].get('href')
+    # print(link1)
+    # vivaRealWebScrapingElement(link1)
 
-def trovitLinkRedirectHandle(urlElement):
-    reqElement = getWebScrapingResponse(urlElement)
-    urlRedirectElement = reqElement.find('body').find('meta').get('content').split('url=',1)[1]
-    if 'quintoandar' in urlRedirectElement:
-        print('Quindo Andar Link')
-        print(urlRedirectElement)
-        quintoAndarWebScraping(urlElement)
+    # São exibidos 36 anuncios por página
+    for item in lista:
+        indexElement += 1
+        link = url+item.get('href')
+        print(vivaRealWebScrapingElement(link))
+    print(indexElement)
 
+def getTextFromElement(Element):
+    if Element is None:
+        return ''
     else:
-        print('Não é link do Quinto Andar')
-        print(urlRedirectElement)
+        return Element.text.strip()
 
-def quintoAndarLinkRedirectHandle(urlElement):
-    reqElement = getWebScrapingResponse(urlElement)
-    text = reqElement.find('body')
-    print(text)
-    # return eval(reqElement.find('body').get('onload').split('location.href=')[1])
-
-def trovitWebScrapingElement(urlElement):
-    #reqElement = getWebScrapingResponse(urlElement)
-    #print(reqElement)
-    trovitLinkRedirectHandle(urlElement)
-
-def quintoAndarWebScraping(urlElement):
-    quintoAndarLinkRedirectHandle(urlElement)
-    # quintoAndarURL = quintoAndarLinkRedirectHandle(urlElement)
-    # print(quintoAndarURL)
-
-
-
+def vivaRealWebScrapingElement(vivaRealURL):
+    resp = getWebScrapingResponse(vivaRealURL)
+    titulo = getTextFromElement(resp.find('h1', {"class": "js-title-view"}))
+    endereco = getTextFromElement(resp.find('p', {"class": "js-address"}))
+    condominio = getTextFromElement(resp.find('span', {"class": "js-condominium"}))
+    area = getTextFromElement(resp.find('li', {"class": "js-area"}))
+    banheiros = getTextFromElement(resp.find('li', {"class": "js-bathrooms"}))
+    vagasEstacionamento = getTextFromElement(resp.find('li', {"class": "js-parking"}))
+    preco = getTextFromElement(resp.find('h3', {"class": "js-price-sale"}))
+    anuncio = {
+        'titulo': titulo,
+        'endereco': endereco,
+        'condominio': condominio,
+        'area': area,
+        'banheiros': banheiros,
+        'vagasEstacionamento': vagasEstacionamento,
+        'preco': preco
+        }
+    return anuncio
 
 executarWebScraping(url)
